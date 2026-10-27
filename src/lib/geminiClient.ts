@@ -38,15 +38,21 @@ export async function streamChatResponse({
 
     if (!response.ok) {
       let errText = `Server responded with status ${response.status}`;
+      // Clone the response to read it as text, then try parsing as JSON
+      const responseClone = response.clone();
       try {
         const errJson = await response.json();
         if (errJson.error) {
           errText = errJson.error;
         }
       } catch {
-        // Fallback to text
-        const raw = await response.text();
-        if (raw) errText = raw;
+        // Fallback to text if JSON parse fails
+        try {
+          const raw = await responseClone.text();
+          if (raw) errText = raw;
+        } catch (e) {
+          console.error('Failed to read error response:', e);
+        }
       }
       onError(errText);
       onComplete();
